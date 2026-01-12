@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, Enum as SQLEnum, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -27,9 +27,9 @@ class Modulo(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    # Relación N a N con Usuarios
-    usuarios = relationship(
-        "UsuarioModulo",
+    # Relación N a N con Roles
+    roles = relationship(
+        "RolModulo",
         back_populates="modulo",
         cascade="all, delete-orphan"
     )

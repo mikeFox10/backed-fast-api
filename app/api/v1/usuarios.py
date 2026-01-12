@@ -48,10 +48,18 @@ async def get_usuario(
     from app.schemas.persona import PersonaResponse
     
     response = UsuarioWithRelations.model_validate(usuario)
-    if usuario.rol:
-        response.rol = RolSimple.model_validate(usuario.rol)
-    if usuario.modulos:
-        response.modulos = [ModuloSimple.model_validate(um.modulo) for um in usuario.modulos if um.is_active]
+    
+    # Obtener roles del usuario
+    response.roles = [
+        RolSimple.model_validate(ur.rol) 
+        for ur in usuario.roles 
+        if ur.is_active and ur.rol.is_active
+    ]
+    
+    # Obtener módulos calculados desde roles
+    modulos = UsuarioService.get_modulos_from_roles(db, usuario_id)
+    response.modulos = [ModuloSimple.model_validate(m) for m in modulos]
+    
     if usuario.persona:
         response.persona = PersonaResponse.model_validate(usuario.persona)
     
@@ -66,6 +74,10 @@ async def create_usuario(
 ):
     """Crear nuevo usuario"""
     nuevo_usuario = UsuarioService.create_usuario(db, usuario)
+    # Asignar roles si se proporcionaron
+    if usuario.rol_ids:
+        UsuarioService.asignar_roles(db, nuevo_usuario.id, usuario.rol_ids)
+        db.refresh(nuevo_usuario)
     return UsuarioResponse.model_validate(nuevo_usuario)
 
 
@@ -99,25 +111,33 @@ async def delete_usuario(
     return None
 
 
-@router.post("/{usuario_id}/modulos", response_model=UsuarioWithRelations)
-async def asignar_modulos_usuario(
+@router.post("/{usuario_id}/roles", response_model=UsuarioWithRelations)
+async def asignar_roles_usuario(
     usuario_id: int,
-    modulo_ids: List[int],
+    rol_ids: List[int],
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_superuser)
 ):
-    """Asignar módulos a usuario"""
-    usuario = UsuarioService.asignar_modulos(db, usuario_id, modulo_ids)
+    """Asignar roles a usuario (los módulos se calculan automáticamente desde los roles)"""
+    usuario = UsuarioService.asignar_roles(db, usuario_id, rol_ids)
     
     from app.schemas.rol import RolSimple
     from app.schemas.modulo import ModuloSimple
     from app.schemas.persona import PersonaResponse
     
     response = UsuarioWithRelations.model_validate(usuario)
-    if usuario.rol:
-        response.rol = RolSimple.model_validate(usuario.rol)
-    if usuario.modulos:
-        response.modulos = [ModuloSimple.model_validate(um.modulo) for um in usuario.modulos if um.is_active]
+    
+    # Obtener roles del usuario
+    response.roles = [
+        RolSimple.model_validate(ur.rol) 
+        for ur in usuario.roles 
+        if ur.is_active and ur.rol.is_active
+    ]
+    
+    # Obtener módulos calculados desde roles
+    modulos = UsuarioService.get_modulos_from_roles(db, usuario_id)
+    response.modulos = [ModuloSimple.model_validate(m) for m in modulos]
+    
     if usuario.persona:
         response.persona = PersonaResponse.model_validate(usuario.persona)
     

@@ -20,6 +20,12 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     """Hashear contraseña"""
+    # Asegurar que la contraseña sea una cadena y no exceda 72 bytes
+    if isinstance(password, str):
+        password = password.encode('utf-8')
+    # Bcrypt tiene un límite de 72 bytes
+    if len(password) > 72:
+        password = password[:72]
     return pwd_context.hash(password)
 
 

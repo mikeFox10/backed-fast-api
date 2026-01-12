@@ -2,6 +2,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List
 from datetime import datetime
 from app.schemas.permiso import PermisoSimple
+# from app.schemas.modulo import ModuloSimple
 
 
 class RolBase(BaseModel):
@@ -31,6 +32,7 @@ class RolResponse(RolBase):
 
 class RolWithRelations(RolResponse):
     permisos: List[PermisoSimple] = []
+    # modulos: List[ModuloSimple] = []
     usuarios_count: Optional[int] = 0
 
     model_config = ConfigDict(from_attributes=True)

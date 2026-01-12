@@ -3,7 +3,8 @@ from sqlalchemy import or_
 from typing import List, Optional
 from fastapi import HTTPException, status
 from app.models.usuario import Usuario
-from app.models.usuario_modulo import UsuarioModulo
+from app.models.usuario_rol import UsuarioRol
+from app.models.rol_modulo import RolModulo
 from app.schemas.usuario import UsuarioCreate, UsuarioUpdate
 from app.core.security import get_password_hash
 from datetime import datetime
@@ -69,11 +70,22 @@ class UsuarioService:
             email=usuario.email,
             nombre_completo=usuario.nombre_completo,
             hashed_password=get_password_hash(usuario.password),
-            is_active=usuario.is_active,
-            rol_id=usuario.rol_id
+            is_active=usuario.is_active
         )
         
         db.add(db_usuario)
+        db.flush()
+        
+        # Asignar roles si se proporcionan
+        if usuario.rol_ids:
+            for rol_id in usuario.rol_ids:
+                usuario_rol = UsuarioRol(
+                    usuario_id=db_usuario.id,
+                    rol_id=rol_id,
+                    is_active=True
+                )
+                db.add(usuario_rol)
+        
         db.commit()
         db.refresh(db_usuario)
         return db_usuario
@@ -117,8 +129,10 @@ class UsuarioService:
             db_usuario.hashed_password = get_password_hash(usuario_update.password)
         if usuario_update.is_active is not None:
             db_usuario.is_active = usuario_update.is_active
-        if usuario_update.rol_id is not None:
-            db_usuario.rol_id = usuario_update.rol_id
+        
+        # Actualizar roles si se proporcionan
+        if usuario_update.rol_ids is not None:
+            UsuarioService.asignar_roles(db, usuario_id, usuario_update.rol_ids)
         
         db.commit()
         db.refresh(db_usuario)
@@ -139,12 +153,12 @@ class UsuarioService:
         return True
 
     @staticmethod
-    def asignar_modulos(
+    def asignar_roles(
         db: Session,
         usuario_id: int,
-        modulo_ids: List[int]
+        rol_ids: List[int]
     ) -> Usuario:
-        """Asignar módulos a usuario"""
+        """Asignar roles a usuario"""
         db_usuario = UsuarioService.get_usuario(db, usuario_id)
         if not db_usuario:
             raise HTTPException(
@@ -153,20 +167,46 @@ class UsuarioService:
             )
         
         # Eliminar asignaciones existentes
-        db.query(UsuarioModulo).filter(UsuarioModulo.usuario_id == usuario_id).delete()
+        db.query(UsuarioRol).filter(UsuarioRol.usuario_id == usuario_id).delete()
         
         # Crear nuevas asignaciones
-        for modulo_id in modulo_ids:
-            usuario_modulo = UsuarioModulo(
+        for rol_id in rol_ids:
+            usuario_rol = UsuarioRol(
                 usuario_id=usuario_id,
-                modulo_id=modulo_id,
+                rol_id=rol_id,
                 is_active=True
             )
-            db.add(usuario_modulo)
+            db.add(usuario_rol)
         
         db.commit()
         db.refresh(db_usuario)
         return db_usuario
+
+    @staticmethod
+    def get_modulos_from_roles(db: Session, usuario_id: int) -> List:
+        """
+        Obtener módulos del usuario calculados desde sus roles.
+        Si un módulo está en múltiples roles, se incluye una sola vez.
+        """
+        from app.models.modulo import Modulo
+        
+        db_usuario = UsuarioService.get_usuario(db, usuario_id)
+        if not db_usuario:
+            return []
+        
+        # Obtener todos los módulos de los roles activos del usuario
+        modulos_ids = set()
+        modulos_list = []
+        
+        for usuario_rol in db_usuario.roles:
+            if usuario_rol.is_active and usuario_rol.rol.is_active:
+                for rol_modulo in usuario_rol.rol.modulos:
+                    if rol_modulo.is_active and rol_modulo.modulo.is_active:
+                        if rol_modulo.modulo_id not in modulos_ids:
+                            modulos_ids.add(rol_modulo.modulo_id)
+                            modulos_list.append(rol_modulo.modulo)
+        
+        return modulos_list
 
     @staticmethod
     def update_last_login(db: Session, usuario: Usuario):

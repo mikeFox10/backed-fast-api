@@ -3,6 +3,7 @@ from typing import List, Optional
 from fastapi import HTTPException, status
 from app.models.rol import Rol
 from app.models.rol_permiso import RolPermiso
+from app.models.rol_modulo import RolModulo
 from app.schemas.rol import RolCreate, RolUpdate
 
 
@@ -120,6 +121,32 @@ class RolService:
                 is_active=True
             )
             db.add(rol_permiso)
+        
+        db.commit()
+        db.refresh(db_rol)
+        return db_rol
+
+    @staticmethod
+    def asignar_modulos(db: Session, rol_id: int, modulo_ids: List[int]) -> Rol:
+        """Asignar módulos a rol"""
+        db_rol = RolService.get_rol(db, rol_id)
+        if not db_rol:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Rol no encontrado"
+            )
+        
+        # Eliminar asignaciones existentes
+        db.query(RolModulo).filter(RolModulo.rol_id == rol_id).delete()
+        
+        # Crear nuevas asignaciones
+        for modulo_id in modulo_ids:
+            rol_modulo = RolModulo(
+                rol_id=rol_id,
+                modulo_id=modulo_id,
+                is_active=True
+            )
+            db.add(rol_modulo)
         
         db.commit()
         db.refresh(db_rol)

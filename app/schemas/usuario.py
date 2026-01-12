@@ -8,7 +8,7 @@ class UsuarioBase(BaseModel):
     email: EmailStr
     nombre_completo: str = Field(..., min_length=1, max_length=200)
     is_active: Optional[bool] = True
-    rol_id: Optional[int] = None
+    rol_ids: Optional[List[int]] = []
 
 
 class UsuarioCreate(UsuarioBase):
@@ -21,7 +21,7 @@ class UsuarioUpdate(BaseModel):
     nombre_completo: Optional[str] = Field(None, min_length=1, max_length=200)
     password: Optional[str] = Field(None, min_length=6)
     is_active: Optional[bool] = None
-    rol_id: Optional[int] = None
+    rol_ids: Optional[List[int]] = None
 
 
 class RolSimple(BaseModel):
@@ -52,8 +52,8 @@ class UsuarioResponse(UsuarioBase):
 
 
 class UsuarioWithRelations(UsuarioResponse):
-    rol: Optional[RolSimple] = None
-    modulos: List[ModuloSimple] = []
+    roles: List[RolSimple] = []
+    modulos: List[ModuloSimple] = []  # Calculados desde roles
     persona: Optional["PersonaResponse"] = None
 
     model_config = ConfigDict(from_attributes=True)

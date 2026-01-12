@@ -14,12 +14,23 @@ class Rol(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    # Relación 1 a N con Usuarios
-    usuarios = relationship("Usuario", back_populates="rol")
+    # Relación N a N con Usuarios
+    usuarios = relationship(
+        "UsuarioRol",
+        back_populates="rol",
+        cascade="all, delete-orphan"
+    )
     
     # Relación N a N con Permisos
     permisos = relationship(
         "RolPermiso",
+        back_populates="rol",
+        cascade="all, delete-orphan"
+    )
+    
+    # Relación N a N con Módulos
+    modulos = relationship(
+        "RolModulo",
         back_populates="rol",
         cascade="all, delete-orphan"
     )

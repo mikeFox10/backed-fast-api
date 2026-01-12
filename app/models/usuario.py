@@ -15,19 +15,14 @@ class Usuario(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     is_superuser = Column(Boolean, default=False, nullable=False)
     
-    # Foreign Key a Rol (Relación N a 1)
-    rol_id = Column(Integer, ForeignKey("roles.id"), nullable=True)
-    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     last_login = Column(DateTime(timezone=True), nullable=True)
 
     # Relaciones
-    rol = relationship("Rol", back_populates="usuarios")
-    
-    # Relación N a N con Módulos
-    modulos = relationship(
-        "UsuarioModulo",
+    # Relación N a N con Roles
+    roles = relationship(
+        "UsuarioRol",
         back_populates="usuario",
         cascade="all, delete-orphan"
     )

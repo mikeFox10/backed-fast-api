@@ -8,7 +8,8 @@ from app.models.usuario import Usuario
 from app.models.rol import Rol
 from app.models.modulo import Modulo
 from app.models.permiso import Permiso
-from app.models.usuario_modulo import UsuarioModulo
+from app.models.usuario_rol import UsuarioRol
+from app.models.rol_modulo import RolModulo
 from app.models.rol_permiso import RolPermiso
 from app.models.modulo_permiso import ModuloPermiso
 from app.models.modulo import TipoModulo
@@ -53,23 +54,27 @@ def seed_roles(db: Session):
         {
             "nombre": "Super Administrador",
             "descripcion": "Acceso completo al sistema",
-            "permisos": []  # Todos los permisos
+            "permisos": [],  # Todos los permisos
+            "modulos": []  # Todos los módulos
         },
         {
             "nombre": "Administrador",
             "descripcion": "Administrador con permisos limitados",
-            "permisos": ["usuarios.ver", "usuarios.crear", "usuarios.editar", "roles.ver", "modulos.ver"]
+            "permisos": ["usuarios.ver", "usuarios.crear", "usuarios.editar", "roles.ver", "modulos.ver"],
+            "modulos": ["Dashboard", "Usuarios", "Roles", "Módulos"]
         },
         {
             "nombre": "Usuario",
             "descripcion": "Usuario estándar",
-            "permisos": ["usuarios.ver", "modulos.ver"]
+            "permisos": ["usuarios.ver", "modulos.ver"],
+            "modulos": ["Dashboard", "Usuarios"]
         },
     ]
     
     for rol_data in roles_data:
         existing = db.query(Rol).filter(Rol.nombre == rol_data["nombre"]).first()
         if not existing:
+            modulos_nombres = rol_data.pop("modulos")
             rol = Rol(
                 nombre=rol_data["nombre"],
                 descripcion=rol_data["descripcion"]
@@ -90,6 +95,17 @@ def seed_roles(db: Session):
             for permiso in permisos:
                 rol_permiso = RolPermiso(rol_id=rol.id, permiso_id=permiso.id)
                 db.add(rol_permiso)
+            
+            # Asignar módulos
+            if modulos_nombres:
+                modulos = db.query(Modulo).filter(Modulo.nombre.in_(modulos_nombres)).all()
+            else:
+                # Todos los módulos
+                modulos = db.query(Modulo).all()
+            
+            for modulo in modulos:
+                rol_modulo = RolModulo(rol_id=rol.id, modulo_id=modulo.id, is_active=True)
+                db.add(rol_modulo)
     
     db.commit()
     print("✓ Roles creados")
@@ -191,8 +207,8 @@ def seed_usuarios(db: Session):
         existing = db.query(Usuario).filter(Usuario.username == usuario_data["username"]).first()
         if not existing:
             rol_nombre = usuario_data.pop("rol_nombre")
-            modulos_nombres = usuario_data.pop("modulos")
             password = usuario_data.pop("password")
+            usuario_data.pop("modulos")  # Ya no se asignan directamente
             
             rol = db.query(Rol).filter(Rol.nombre == rol_nombre).first()
             
@@ -201,22 +217,15 @@ def seed_usuarios(db: Session):
                 email=usuario_data["email"],
                 nombre_completo=usuario_data["nombre_completo"],
                 hashed_password=get_password_hash(password),
-                is_superuser=usuario_data["is_superuser"],
-                rol_id=rol.id if rol else None
+                is_superuser=usuario_data["is_superuser"]
             )
             db.add(usuario)
             db.flush()
             
-            # Asignar módulos
-            if modulos_nombres:
-                modulos = db.query(Modulo).filter(Modulo.nombre.in_(modulos_nombres)).all()
-            else:
-                # Todos los módulos
-                modulos = db.query(Modulo).all()
-            
-            for modulo in modulos:
-                usuario_modulo = UsuarioModulo(usuario_id=usuario.id, modulo_id=modulo.id)
-                db.add(usuario_modulo)
+            # Asignar rol al usuario
+            if rol:
+                usuario_rol = UsuarioRol(usuario_id=usuario.id, rol_id=rol.id, is_active=True)
+                db.add(usuario_rol)
     
     db.commit()
     print("✓ Usuarios creados")

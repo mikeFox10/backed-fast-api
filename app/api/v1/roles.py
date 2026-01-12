@@ -38,10 +38,12 @@ async def get_rol(
         )
     
     from app.schemas.permiso import PermisoSimple
+    from app.schemas.modulo import ModuloSimple
     
     response = RolWithRelations.model_validate(rol)
     response.permisos = [PermisoSimple.model_validate(rp.permiso) for rp in rol.permisos if rp.is_active]
-    response.usuarios_count = len(rol.usuarios)
+    response.modulos = [ModuloSimple.model_validate(rm.modulo) for rm in rol.modulos if rm.is_active and rm.modulo.is_active]
+    response.usuarios_count = len([ur for ur in rol.usuarios if ur.is_active])
     
     return response
 
@@ -91,9 +93,32 @@ async def asignar_permisos_rol(
     rol = RolService.asignar_permisos(db, rol_id, permiso_ids)
     
     from app.schemas.permiso import PermisoSimple
+    from app.schemas.modulo import ModuloSimple
     
     response = RolWithRelations.model_validate(rol)
     response.permisos = [PermisoSimple.model_validate(rp.permiso) for rp in rol.permisos if rp.is_active]
-    response.usuarios_count = len(rol.usuarios)
+    response.modulos = [ModuloSimple.model_validate(rm.modulo) for rm in rol.modulos if rm.is_active and rm.modulo.is_active]
+    response.usuarios_count = len([ur for ur in rol.usuarios if ur.is_active])
+    
+    return response
+
+
+@router.post("/{rol_id}/modulos", response_model=RolWithRelations)
+async def asignar_modulos_rol(
+    rol_id: int,
+    modulo_ids: List[int],
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_superuser)
+):
+    """Asignar módulos a rol"""
+    rol = RolService.asignar_modulos(db, rol_id, modulo_ids)
+    
+    from app.schemas.permiso import PermisoSimple
+    from app.schemas.modulo import ModuloSimple
+    
+    response = RolWithRelations.model_validate(rol)
+    response.permisos = [PermisoSimple.model_validate(rp.permiso) for rp in rol.permisos if rp.is_active]
+    response.modulos = [ModuloSimple.model_validate(rm.modulo) for rm in rol.modulos if rm.is_active and rm.modulo.is_active]
+    response.usuarios_count = len([ur for ur in rol.usuarios if ur.is_active])
     
     return response

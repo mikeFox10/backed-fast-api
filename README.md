@@ -1,6 +1,6 @@
-# Sistema de Gestión de Usuarios y Permisos - FastAPI
+# Backend Gestión de Usuarios y Permisos - FastAPI
 
-Aplicación profesional desarrollada con FastAPI que implementa un sistema completo de gestión de usuarios, roles, módulos y permisos con relaciones 1 a N y N a N.
+Backend FastAPI que implementa un sistema completo de gestión de usuarios, roles, módulos y permisos
 
 ## 🚀 Características
 
@@ -19,19 +19,18 @@ Aplicación profesional desarrollada con FastAPI que implementa un sistema compl
 ## 📋 Requisitos Previos
 
 - Docker y Docker Compose
-- Python 3.11+ (si ejecutas localmente)
+- Python 3.11+ (modo local)
 
 ## 🛠️ Instalación y Uso
 
-### Con Docker Compose (Recomendado)
+### Con Docker Compose
 
-1. **Clonar el repositorio** (si aplica)
+1. **Clonar el repositorio**
 
-2. **Configurar variables de entorno**:
+2. **Crear y configurar variables de entorno**:
    ```bash
    cp .env.example .env
    ```
-   Edita `.env` según tus necesidades.
 
 3. **Construir y ejecutar**:
    ```bash
@@ -57,7 +56,7 @@ Aplicación profesional desarrollada con FastAPI que implementa un sistema compl
    ```
 
 3. **Configurar base de datos PostgreSQL**:
-   - Crea una base de datos PostgreSQL
+   - Crear una base de datos PostgreSQL
    - Actualiza `DATABASE_URL` en `.env`
 
 4. **Ejecutar migraciones**:
@@ -111,8 +110,6 @@ crud-fastapi/
 
 ## 🔐 Usuarios por Defecto
 
-Después de ejecutar los seeders, tendrás estos usuarios:
-
 - **Super Administrador**:
   - Usuario: `admin`
   - Contraseña: `admin123`
@@ -134,7 +131,7 @@ Después de ejecutar los seeders, tendrás estos usuarios:
 - `POST /api/v1/usuarios` - Crear usuario
 - `PUT /api/v1/usuarios/{id}` - Actualizar usuario
 - `DELETE /api/v1/usuarios/{id}` - Eliminar usuario
-- `POST /api/v1/usuarios/{id}/modulos` - Asignar módulos
+- `POST /api/v1/usuarios/{id}/roles` - Asignar roles (los módulos se calculan automáticamente)
 
 ### Roles
 - `GET /api/v1/roles` - Listar roles
@@ -143,6 +140,7 @@ Después de ejecutar los seeders, tendrás estos usuarios:
 - `PUT /api/v1/roles/{id}` - Actualizar rol
 - `DELETE /api/v1/roles/{id}` - Eliminar rol
 - `POST /api/v1/roles/{id}/permisos` - Asignar permisos
+- `POST /api/v1/roles/{id}/modulos` - Asignar módulos
 
 ### Módulos
 - `GET /api/v1/modulos` - Listar módulos
@@ -161,10 +159,17 @@ Después de ejecutar los seeders, tendrás estos usuarios:
 
 ## 🔗 Relaciones
 
-- **Usuario → Rol**: 1 a N (Un usuario tiene un rol)
-- **Usuario → Módulos**: N a N (Un usuario puede tener acceso a múltiples módulos)
+- **Usuario → Roles**: N a N (Un usuario puede tener múltiples roles)
+- **Rol → Módulos**: N a N (Un rol puede tener acceso a múltiples módulos)
 - **Rol → Permisos**: N a N (Un rol puede tener múltiples permisos)
 - **Módulo → Permisos**: N a N (Un módulo puede requerir múltiples permisos)
+
+### Diseño de Accesos
+
+Los módulos a los que un usuario tiene acceso se **calculan dinámicamente** desde los roles asignados:
+- Si un usuario tiene múltiples roles, tiene acceso a todos los módulos de todos sus roles
+- Si un módulo está en varios roles del usuario, se incluye una sola vez (sin duplicados)
+- Los permisos se activan si **al menos uno** de los roles del usuario tiene acceso al módulo
 
 ## 🧪 Migraciones
 
@@ -183,30 +188,8 @@ alembic upgrade head
 alembic downgrade -1
 ```
 
-## 🌐 Integración con Frontend
-
-Esta API está lista para ser consumida por cualquier frontend (React, Vue, Angular, etc.). 
-
-### Ejemplo de uso con React:
-
-```javascript
-// Login
-const response = await fetch('http://localhost:8000/api/v1/auth/login/json', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ username: 'admin', password: 'admin123' })
-});
-const { access_token } = await response.json();
-
-// Obtener usuarios (con token)
-const users = await fetch('http://localhost:8000/api/v1/usuarios', {
-  headers: { 'Authorization': `Bearer ${access_token}` }
-});
-```
 
 ## 📝 Variables de Entorno
-
-Configura estas variables en tu archivo `.env`:
 
 ```env
 # Database
@@ -225,7 +208,7 @@ ENVIRONMENT=development
 DEBUG=True
 ```
 
-## 🐳 Comandos Docker Útiles
+## 🐳 Comandos 
 
 ```bash
 # Iniciar servicios
@@ -246,18 +229,9 @@ docker-compose up --build
 
 ## 📚 Documentación
 
-Una vez que la aplicación esté corriendo, accede a:
 - **Swagger UI**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 
-## 🤝 Contribuir
-
-Las contribuciones son bienvenidas. Por favor:
-1. Fork el proyecto
-2. Crea una rama para tu feature
-3. Commit tus cambios
-4. Push a la rama
-5. Abre un Pull Request
 
 ## 📄 Licencia
 

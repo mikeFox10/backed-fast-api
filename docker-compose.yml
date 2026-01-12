@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:15-alpine
+    image: postgres:17.6-alpine
     container_name: crud_fastapi_db
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -26,9 +26,12 @@ services:
     command: >
       sh -c "
         echo 'Esperando a que la base de datos esté lista...' &&
-        sleep 5 &&
+        sleep 2 &&
+        echo 'Ejecutando migraciones...' &&
         alembic upgrade head &&
+        echo 'Migraciones completadas. Ejecutando seeders...' &&
         python -m app.db.seeders &&
+        echo 'Iniciando servidor...' &&
         uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
       "
     volumes:
@@ -43,8 +46,7 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-development}
       DEBUG: ${DEBUG:-True}
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     networks:
       - app_network
 
